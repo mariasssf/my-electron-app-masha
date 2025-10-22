@@ -1,91 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <title>Моє Портфоліо</title>
-  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
-  <style>
-    /* Основні стилі */
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f0f2f5;
-    }
-    .container {
-      width: 90%;
-      max-width: 900px;
-      margin: 20px auto;
-      padding: 20px;
-      background-color: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    h1, h2 {
-      color: #333;
-      border-bottom: 2px solid #007bff;
-      padding-bottom: 5px;
-    }
-    ul {
-      list-style-type: square;
-      padding-left: 20px;
-    }
-
-    /* Додаткові стилі для таблиці */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: left;
-    }
-    th {
-      background-color: #f2f2f2;
-      color: #555;
-    }
-    tr:nth-child(even) {
-      background-color: #fafafa;
-    }
-  </style>
+  <title>Matrix Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/alpinejs" defer></script>
 </head>
-<body>
-  <div class="container">
-    <h1>Моє портфоліо</h1>
-    <p>Вітаю! Це мій перший практичний проєкт в Electron.</p>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div x-data="chatApp()" 
+       :class="{'w-96 h-[600px]': accessToken, 'w-96 h-96': !accessToken}"
+       class="bg-white p-6 rounded shadow-md transition-all duration-500">
 
-    <h2>Мої навички</h2>
-    <ul>
-      <li>HTML5 — Основи</li>
-      <li>CSS — Базові стилі</li>
-      <li>JavaScript — Початківець</li>
-      <li>Electron — Встановлення та запуск</li>
-    </ul>
+    <!-- Форма логіну -->
+    <template x-if="!accessToken">
+      <div>
+        <h2 class="text-xl font-bold mb-4">Логін</h2>
+        <input x-model="username" placeholder="Username"
+               class="border p-2 w-full mb-2 rounded" />
+        <input x-model="password" type="password" placeholder="Password"
+               class="border p-2 w-full mb-2 rounded" />
+        <button @click="login()" class="bg-blue-500 text-white p-2 w-full rounded hover:bg-blue-600 transition">
+          Увійти
+        </button>
+        <p x-text="error" class="text-red-500 mt-2"></p>
+      </div>
+    </template>
 
-    <h2>Мої проєкти</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Назва проєкту</th>
-          <th>Технологія</th>
-          <th>Статус</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Перший додаток</td>
-          <td>Electron.js</td>
-          <td>В процесі</td>
-        </tr>
-        <tr>
-          <td>Портфоліо</td>
-          <td>HTML/CSS</td>
-          <td>Готово</td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Панель після авторизації -->
+    <template x-if="accessToken">
+      <div>
+        <h1 class="text-green-600 text-xl font-bold text-center mb-2">
+          Ви успішно авторизувались
+        </h1>
+        <p class="text-gray-700 text-center mb-4">User ID: <span x-text="userId"></span></p>
+        
+        <!-- Резюме користувача -->
+        <div class="bg-gray-50 p-4 rounded shadow mb-4">
+          <h3 class="text-lg font-semibold mb-2">Марія Борознюк</h3>
+          <p><strong>Професія:</strong> Курсант</p>
+          <p><strong>Навички:</strong> HTML, CSS,  JavaScript</p>
+          <p><strong>Досвід:</strong> Робота над навчальними проєктами</p>
+          <p><strong>Контакти:</strong> email@example.com</p>
+        </div>
+
+        <button @click="logout()" class="bg-gray-400 text-white p-2 w-full rounded hover:bg-gray-500 transition">
+          Вийти
+        </button>
+      </div>
+    </template>
   </div>
+
+  <script>
+    function chatApp() {
+      return {
+        username: '@mariaiiaia34:matrix.org', // твій Matrix акаунт
+        password: '',
+        accessToken: '',
+        userId: '',
+        error: '',
+
+        async login() {
+          try {
+            let user = this.username.replace('@', '').replace(':matrix.org', '');
+
+            const res = await fetch('https://matrix.org/_matrix/client/v3/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'm.login.password',
+                user: user,
+                password: this.password
+              })
+            });
+
+            const data = await res.json();
+
+            if (data.access_token) {
+              this.accessToken = data.access_token;
+              this.userId = data.user_id;
+              this.error = '';
+            } else {
+              this.error = 'Невірний логін або пароль'; // 🔹 локалізація
+              console.error(data);
+            }
+          } catch (e) {
+            this.error = 'Помилка під час входу';
+            console.error(e);
+          }
+        },
+
+        logout() {
+          this.accessToken = '';
+          this.username = '@mariaiiaia34:matrix.org';
+          this.password = '';
+          this.userId = '';
+          this.error = '';
+        }
+      }
+    }
+  </script>
 </body>
 </html>
